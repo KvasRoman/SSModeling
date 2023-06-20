@@ -91,7 +91,15 @@ public class KSABuilder : MonoBehaviour
                 from.ConnectTo(to, aEdge.ToNum - 1, aEdge.FromNum - 1);
             }
         }
-        kSArray = new KSArray(array);
+        try
+        {
+            kSArray = new KSArray(array);
+        }
+        catch(System.Exception ex)
+        {
+            Debug.Log(ex);
+            return null;
+        }
         return kSArray;
     }
 }

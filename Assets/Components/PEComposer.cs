@@ -23,6 +23,8 @@ public class PEComposer : MonoBehaviour
     public static PEComposer Main;
     void Start()
     {
+        
+
         foreach(var key in PELibrary.peModelDic.Keys)
         {
             Debug.Log(key);
@@ -35,7 +37,6 @@ public class PEComposer : MonoBehaviour
         keybindings.Add(KeyCode.O, CreateOutputNode);
         keybindings.Add(KeyCode.F, CreateFunction);
         keybindings.Add(KeyCode.R, CreateRegister);
-        
     }
     KeyCode GetKey()
     {
@@ -123,6 +124,7 @@ public class PEComposer : MonoBehaviour
         InputNode.Restart();
         Camera.main.GetComponent<SceneTransition>().GoToScene("PE");
     }
+
     #region BindingFunctions
     void Idle()
     {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,7 @@ public class DragController : MonoBehaviour
     public bool Active = true;
     Transform _parent;
     Collider2D _colider;
+    event Action subscribersHandler;
     private void Start()
     {
         _colider = GetComponent<Collider2D>();
@@ -20,5 +22,10 @@ public class DragController : MonoBehaviour
         Vector3 pos = CursorPos;
         pos.z = _parent.position.z;
         _parent.position = pos;
+        subscribersHandler?.Invoke();
+    }
+    public void OnDragSubscribe(Action action)
+    {
+        subscribersHandler += action;
     }
 }

@@ -14,4 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/PE.unity
     guid: d21c23d98b1c28d4db78c55864c39d31
+  - enabled: 1
+    path: Assets/Scenes/QSArray.unity
+    guid: 1a57ea76e754bdf498dbb2c51bd86d21
   m_configObjects: {}

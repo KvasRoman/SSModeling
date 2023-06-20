@@ -18,6 +18,7 @@ public class KSAComposer : MonoBehaviour
     KSAOutNode _from;
     IFocusable _target;
     PEModel _selectedModel;
+    GameObject KSACanvas;
     KeyCode getKey()
     {
         foreach(var key in _keybindings.Keys)
@@ -30,7 +31,10 @@ public class KSAComposer : MonoBehaviour
     
     void Start()
     {
-        if(PELibrary.peModelDic != null)
+        KSACanvas = GetComponent<KSABuilder>().KSACanvas;
+        Camera.main.GetComponent<QSAphaseswitcher>().Subscribe(SwitchToPhaseTwo);
+
+        if (PELibrary.peModelDic != null)
         {
             var optionList = new List<Dropdown.OptionData>();
             foreach (var key in PELibrary.peModelDic.Keys)
@@ -89,6 +93,15 @@ public class KSAComposer : MonoBehaviour
     public void BuildKSS()
     {
         _activeBuild = builder.Build();
+        if(_activeBuild != null )
+        {
+            //Phase 2 configure input order
+            Camera.main.GetComponent<QSAphaseswitcher>().SwitchToPhase(2);
+        }
+        else
+        {
+            Debug.Log("Error occured during QSS build");
+        }
     }
     public void LoadData()
     {
@@ -114,6 +127,32 @@ public class KSAComposer : MonoBehaviour
     {
         _activeBuild.TactStart();
         outputText.text = _activeBuild.GetCollectorsValues();
+    }
+
+    public void SwitchToPhaseTwo(string phase)
+    {
+        if (phase != "Phase 2")
+        {
+            return;
+        }
+        var PEs = KSACanvas.transform.GetChilds(a => true);
+        List<KSAEdge> edges = new List<KSAEdge>();
+        foreach (var pe in PEs)
+        {
+            var tempEdgeList = pe.transform.GetChilds(e => e.GetComponent<KSAEdge>() != null);
+            foreach (var edge in tempEdgeList)
+            {
+                edges.Add(edge.GetComponent<KSAEdge>());
+            }
+
+            //hide all OutNodes
+            pe.transform.GetChilds(c => c.GetComponent<KSAOutNode>() != null)[0].transform.localScale = Vector3.zero;
+        }
+        foreach (var edge in edges)
+        {
+            edge.To.transform.localScale = Vector3.zero;
+        }
+        
     }
     #region keybinding functions
     void CreatePE()

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,6 +7,7 @@ using UnityEngine;
 public class DeleteController : MonoBehaviour
 {
     bool _wasDown = false;
+    event Action subscribersHandler;
     private void OnMouseDown()
     {
         _wasDown = true;
@@ -17,7 +19,15 @@ public class DeleteController : MonoBehaviour
     private void OnMouseUp()
     {
         if (_wasDown)
-            Object.Destroy(transform.parent.gameObject);
+        {
+            subscribersHandler?.Invoke();
+            UnityEngine.Object.Destroy(transform.parent.gameObject);
+        }
+            
 
+    }
+    public void OnDeleteSubscribe(Action action)
+    {
+        subscribersHandler += action;
     }
 }

@@ -80,7 +80,15 @@ public class PEPartBuilder : MonoBehaviour
     }
     public void CreateEdge(GameObject from, GameObject to)
     {
-        var edge = CreatePart("Edge", from.transform.parent.gameObject);
+        var edge = CreatePart("Edge", from);
+        from.transform.parent.Find("DragController").GetComponent<DragController>().OnDragSubscribe(() =>
+        {
+            ConnectFromTo(edge, from.transform.position, to.transform.position);
+        });
+        to.transform.parent.Find("DragController").GetComponent<DragController>().OnDragSubscribe(() =>
+        {
+            ConnectFromTo(edge, from.transform.position, to.transform.position);
+        });
         edge.GetComponent<Edge>().SetEdgeSocket(to);
         ConnectFromTo(edge, from.transform.position, to.transform.position);
     }
