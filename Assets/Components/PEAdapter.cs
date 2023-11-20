@@ -24,7 +24,12 @@ public class PEAdapter
         
         foreach(var element in elements)
         {
-            var unityEdges = element.transform.GetChilds((t) => t.GetComponent<Edge>() != null);
+            var addEdgeControllers = element.transform.GetChilds((t) => t.GetComponent<AddEdgeController>() != null);
+            List<Edge> unityEdges = new List<Edge>();
+            foreach(var addedgeController in addEdgeControllers)
+            {
+                unityEdges.Add(addedgeController.transform.GetChilds(c => c.GetComponent<Edge>() != null)[0].GetComponent<Edge>());
+            }
             SSA.IRepeater from =
                 element.GetComponent<InputNode>() != null ? (SSA.IRepeater)inputNodes.Find((i) => i.Id == inNPairs[element.GetComponent<InputNode>().GetInstanceID()]) :
                 element.GetComponent<Function>() != null ? (SSA.IRepeater)funcs.Find((f) => f.Id == fPairs[element.GetComponent<Function>().GetInstanceID()]) :

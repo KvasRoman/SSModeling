@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using SSA = SSAbstraction;
@@ -12,6 +14,8 @@ public class KSAComposer : MonoBehaviour
     [SerializeField] Dropdown PEList;
     [SerializeField] TMP_InputField inputText;
     [SerializeField] Text outputText;
+    [SerializeField] TMP_InputField defaultValue;
+    [SerializeField] TMP_InputField dataPenalty;
     Dictionary<KeyCode, Action> _keybindings;
     SSA.KSArray _activeBuild;
     KSAInNode _to;
@@ -19,16 +23,18 @@ public class KSAComposer : MonoBehaviour
     IFocusable _target;
     PEModel _selectedModel;
     GameObject KSACanvas;
+    List<(TMP_Text text, int order)> outputTextList = new List<(TMP_Text text, int order)>();
+    
     KeyCode getKey()
     {
-        foreach(var key in _keybindings.Keys)
+        foreach (var key in _keybindings.Keys)
         {
             if (Input.GetKeyUp(key))
                 return key;
         }
         return KeyCode.None;
     }
-    
+
     void Start()
     {
         KSACanvas = GetComponent<KSABuilder>().KSACanvas;
@@ -43,7 +49,7 @@ public class KSAComposer : MonoBehaviour
             }
             PEList.AddOptions(optionList);
             PEList.onValueChanged.AddListener((i) => { SelectModel(i); });
-            if(PELibrary.peModelDic.Keys.Count != 0)
+            if (PELibrary.peModelDic.Keys.Count != 0)
                 _selectedModel = PELibrary.peModelDic[PEList.options[0].text];
         }
         _keybindings = new Dictionary<KeyCode, Action>();
@@ -80,7 +86,7 @@ public class KSAComposer : MonoBehaviour
     }
     public void SetTarget(IFocusable focusable)
     {
-        foreach(var foc in focusables)
+        foreach (var foc in focusables)
         {
             foc.UnFocus();
         }
@@ -93,7 +99,7 @@ public class KSAComposer : MonoBehaviour
     public void BuildKSS()
     {
         _activeBuild = builder.Build();
-        if(_activeBuild != null )
+        if (_activeBuild != null)
         {
             //Phase 2 configure input order
             Camera.main.GetComponent<QSAphaseswitcher>().SwitchToPhase(2);
@@ -102,6 +108,131 @@ public class KSAComposer : MonoBehaviour
         {
             Debug.Log("Error occured during QSS build");
         }
+    }
+    public void SaveRequiredInputsOutputs()
+    {
+
+        string output = "";
+        string output2 = "";
+        var resInput = builder.GetRequiredInputNumbers();
+        var resOutput = builder.GetRequiredOutputNumbers();
+        foreach (var i in resInput)
+        {
+            output += " ";
+            output += i.ToString();
+        }
+        foreach (var i in resOutput)
+        {
+            output2 += " ";
+            output2 += i.ToString();
+        }
+        Debug.Log(output);
+        Debug.Log(output2);
+        builder.AddInputFields();
+        
+        var outputs = builder.KSACanvas.transform.GetChilds(c => c.GetComponent<KSAPE>() != null);
+        foreach (var i in outputs)
+        {
+            var peOutputs = i.transform.GetChilds(c => c.GetComponent<KSAOutNode>() != null);
+            foreach(var j in peOutputs)
+            {
+                var pureOutput = j.GetComponent<KSAOutNode>();
+                if (pureOutput.IsRequiredForUser)
+                {
+                    var outputField = builder.AddOutputField(j).transform.GetChilds(c => c.GetComponent<TMP_Text>() != null)[0].GetComponent<TMP_Text>();
+                    outputTextList.Add((outputField, pureOutput.OrderNumber));
+                }
+                
+                
+            }
+        }
+        Camera.main.GetComponent<QSAphaseswitcher>().SwitchToPhase(3);
+    }
+    public void SaveInputData()
+    {
+        // !!add qsa element select!!
+
+        //
+        List<int> order;
+        var values = builder.GetInputValues(out order);
+        for (var i = 0; i < order.Count; i++)
+        {
+            order[i] -= 1;
+        }
+        /*
+        string text1 = "";
+        string text2 = "";
+        foreach(var value in values)
+        {
+            foreach(var i in value)
+            {
+
+                text1 += i.ToString();
+                text1 += " ";
+            }
+        }
+        foreach(var value in order)
+        {
+            text2 += value.ToString();
+            text2 += " ";
+        }
+        Debug.Log(text1);
+        Debug.Log(text2);
+        */
+
+        int maxInputHeight = 0;
+        int penalty; 
+        if(!int.TryParse(dataPenalty.text,out penalty))
+        {
+           penalty = 0;
+        }
+        double defaultV;
+        if(!double.TryParse(defaultValue.text,out defaultV))
+        {
+            defaultV = 0;
+        }
+        foreach (var i in values)
+        {
+            if(maxInputHeight < i.Count)
+                maxInputHeight = i.Count;
+        }
+        int width = _activeBuild.InputWidth;
+        int heigh = maxInputHeight + penalty;
+        List<List<double>> input = new List<List<double>>();
+        for(var i = 0;i < width; i++)
+        {
+            
+            if (order.Contains(i))
+            {
+                List<double> doubles = new List<double>();
+                for(var k = 0;k < penalty; k++)
+                {
+                    doubles.Add(defaultV);
+                }
+                if (values[i].Count < maxInputHeight)
+                {
+                    for(var k = 0; k < maxInputHeight - values[i].Count; k++)
+                    {
+                        doubles.Add(0);
+                    }
+                }
+                doubles = doubles.Concat(values[i]).ToList();
+                input.Add(doubles);
+            }
+            else
+            {
+                input.Add(new List<double>());
+                for (var k = 0; k < heigh; k++)
+                {
+                    input[i].Add(defaultV);
+                }
+            }
+            
+        }
+        
+        _activeBuild.AddInputValues(input);
+
+        Camera.main.GetComponent<QSAphaseswitcher>().SwitchToPhase(4);
     }
     public void LoadData()
     {
@@ -113,7 +244,7 @@ public class KSAComposer : MonoBehaviour
         List<List<double>> formedData = new List<List<double>>();
         for (int i = 0; i < datarows[0].Split(' ').Length; i++)
             formedData.Add(new List<double>());
-        
+
         foreach (var datarow in datarows)
         {
             var doubles = datarow.Split(' ');
@@ -121,38 +252,87 @@ public class KSAComposer : MonoBehaviour
                 formedData[i].Add(double.Parse(doubles[i]));
             Debug.Log(datarow);
         }
-        _activeBuild.AddInputValues(formedData);    
+        _activeBuild.AddInputValues(formedData);
     }
+    
     public void StartTact()
     {
         _activeBuild.TactStart();
-        outputText.text = _activeBuild.GetCollectorsValues();
+        var res = _activeBuild.GetCollectorsValues();
+        Debug.Log(res);
+        return;
+        /*
+        foreach(var output in outputTextList)
+        {
+            string text = "";
+            foreach (var item in res[output.order - 1])
+            {
+                text += item.ToString();
+                text += " ";
+            }
+            output.text.text = text;
+        }
+        */
+        //outputText.text = _activeBuild.GetCollectorsValues();
     }
 
     public void SwitchToPhaseTwo(string phase)
     {
+        
         if (phase != "Phase 2")
         {
             return;
         }
         var PEs = KSACanvas.transform.GetChilds(a => true);
         List<KSAEdge> edges = new List<KSAEdge>();
+        int orderOutputNumber = 1;
+        int orderInputNumber = 1;
         foreach (var pe in PEs)
         {
             var tempEdgeList = pe.transform.GetChilds(e => e.GetComponent<KSAEdge>() != null);
+
             foreach (var edge in tempEdgeList)
             {
-                edges.Add(edge.GetComponent<KSAEdge>());
+                var pureEdge = edge.GetComponent<KSAEdge>();
+                edges.Add(pureEdge);
+                pureEdge.From.Lock();
+                pureEdge.To.Lock();
             }
-
+            
+            var tempInNodeList = pe.transform.GetChilds(inNode => inNode.GetComponent<KSAInNode>() != null);
+            foreach (var inNode in tempInNodeList)
+            {
+                var pureInNode = inNode.GetComponent<KSAInNode>();
+                if (!pureInNode.IsLocked)
+                {
+                    pureInNode.SetInputOrderNumber(orderInputNumber++);
+                    pureInNode.Lock();
+                    pureInNode.ShouldBeInUserInputState = true;
+                }
+                    
+            }
+            var tempOutNodeList = pe.transform.GetChilds(inNode => inNode.GetComponent<KSAOutNode>() != null);
+            foreach (var inNode in tempOutNodeList)
+            {
+                var pureOutNode = inNode.GetComponent<KSAOutNode>();
+                if (!pureOutNode.IsLocked)
+                {
+                    pureOutNode.SetOutputOrderNumber(orderOutputNumber++);
+                    pureOutNode.Lock();
+                    pureOutNode.ShouldBeInUserInputState = true;
+                }
+                    
+            }
             //hide all OutNodes
-            pe.transform.GetChilds(c => c.GetComponent<KSAOutNode>() != null)[0].transform.localScale = Vector3.zero;
+            //pe.transform.GetChilds(c => c.GetComponent<KSAOutNode>() != null)[0].transform.localScale = Vector3.zero;
         }
         foreach (var edge in edges)
         {
+
             edge.To.transform.localScale = Vector3.zero;
+            edge.From.transform.localScale = Vector3.zero;
         }
-        
+
     }
     #region keybinding functions
     void CreatePE()

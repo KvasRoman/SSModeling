@@ -98,6 +98,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   text: {fileID: 4114241668106764380}
+  ShouldBeInUserInputState: 0
+  IsRequiredForUser: 0
 --- !u!61 &6720791128310712530
 BoxCollider2D:
   m_ObjectHideFlags: 0
